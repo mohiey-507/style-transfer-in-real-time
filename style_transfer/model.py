@@ -22,3 +22,32 @@ class VGGEncoder(nn.Module):
         # Normalize using ImageNet stats
         x = (x - self.mean) / self.std
         return self.slice(x)
+
+class Decoder(nn.Module):
+    """Mirrors the VGG encoder structure for decoding."""
+    def __init__(self):
+        super(Decoder, self).__init__()
+        self.decoder = nn.Sequential(
+            # Block 1: Upsample -> Conv -> ReLU (from 512 channels)
+            nn.ReflectionPad2d(1), nn.Conv2d(512, 256, kernel_size=3), nn.ReLU(inplace=True),
+            nn.Upsample(scale_factor=2, mode='nearest'),
+
+            # Block 2: Conv layers -> Upsample (from 256 channels)
+            nn.ReflectionPad2d(1), nn.Conv2d(256, 256, kernel_size=3), nn.ReLU(inplace=True),
+            nn.ReflectionPad2d(1), nn.Conv2d(256, 256, kernel_size=3), nn.ReLU(inplace=True),
+            nn.ReflectionPad2d(1), nn.Conv2d(256, 256, kernel_size=3), nn.ReLU(inplace=True),
+            nn.ReflectionPad2d(1), nn.Conv2d(256, 128, kernel_size=3), nn.ReLU(inplace=True),
+            nn.Upsample(scale_factor=2, mode='nearest'),
+
+            # Block 3: Conv layers -> Upsample (from 128 channels)
+            nn.ReflectionPad2d(1), nn.Conv2d(128, 128, kernel_size=3), nn.ReLU(inplace=True),
+            nn.ReflectionPad2d(1), nn.Conv2d(128, 64, kernel_size=3), nn.ReLU(inplace=True),
+            nn.Upsample(scale_factor=2, mode='nearest'),
+
+            # Block 4: Conv layers -> Final Conv (from 64 channels to 3 channels)
+            nn.ReflectionPad2d(1), nn.Conv2d(64, 64, kernel_size=3), nn.ReLU(inplace=True),
+            nn.ReflectionPad2d(1), nn.Conv2d(64, 3, kernel_size=3)
+        )
+
+    def forward(self, x):
+        return self.decoder(x)
