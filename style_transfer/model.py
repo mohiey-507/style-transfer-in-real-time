@@ -98,3 +98,38 @@ class StyleTransferNet(nn.Module):
         adain_target = self.get_adain_output(content, style)
         generated_img = self.decoder(adain_target)
         return generated_img, adain_target
+
+class VGGLossExtractor(nn.Module):
+    """
+    Extracts features from multiple VGG19 layers (relu1_1 to relu4_1)
+    for calculating style and content losses. 
+        Weights are frozen.
+        Input images are normalized.
+    """
+    def __init__(self):
+        super(VGGLossExtractor, self).__init__()
+        vgg19_features = models.vgg19(weights=models.VGG19_Weights.DEFAULT).features
+
+        self.layer_indices = {'relu1_1': 1, 'relu2_1': 6, 'relu3_1': 11, 'relu4_1': 20}
+        self.max_idx = max(self.layer_indices.values())
+        self.vgg_layers = nn.Sequential(*[vgg19_features[i] for i in range(self.max_idx + 1)])
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        # Pre-register normalization
+        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1))
+        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
+
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+        # Normalize the input image
+        x = (x - self.mean) / self.std
+        features = {}
+        current_feat = x
+        for i, layer in enumerate(self.vgg_layers):
+            current_feat = layer(current_feat)
+            if i in self.layer_indices.values():
+                # Name corresponding to the index
+                layer_name = [name for name, index in self.layer_indices.items() if index == i][0]
+                features[layer_name] = current_feat
+        return features
