@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from utils import calc_mean_std
 
 class VGGEncoder(nn.Module):
     def __init__(self, requires_grad=False):
@@ -51,3 +52,27 @@ class Decoder(nn.Module):
 
     def forward(self, x):
         return self.decoder(x)
+
+class AdaIN(nn.Module):
+    """Adaptive Instance Normalization Layer"""
+    def __init__(self, eps: float = 1e-5):
+        super(AdaIN, self).__init__()
+        self.eps = eps
+
+    def forward(self, content_feat: torch.Tensor, style_feat: torch.Tensor):
+        """
+        Applies AdaIN.
+        Args:
+            content_feat: Features from the content image (e.g., VGG relu4_1).
+            style_feat: Features from the style image (e.g., VGG relu4_1).
+        Returns:
+            Stylized features.
+        """
+        content_mean, content_std = calc_mean_std(content_feat, self.eps)
+        style_mean, style_std = calc_mean_std(style_feat, self.eps)
+
+        # Normalize content features: (x - mu_c) / sigma_c
+        normalized_feat = (content_feat - content_mean) / content_std
+        # Stylize: Apply style statistics: (normalized * sigma_s) + mu_s
+        stylized_feat = normalized_feat * style_std + style_mean
+        return stylized_feat
