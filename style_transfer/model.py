@@ -76,3 +76,25 @@ class AdaIN(nn.Module):
         # Stylize: Apply style statistics: (normalized * sigma_s) + mu_s
         stylized_feat = normalized_feat * style_std + style_mean
         return stylized_feat
+    
+class StyleTransferNet(nn.Module):
+    """
+    Style Transfer Network
+        Encoder -> AdaIN -> Decoder
+    """
+    def __init__(self):
+        super(StyleTransferNet, self).__init__()
+        self.encoder = VGGEncoder(requires_grad=False)
+        self.adain = AdaIN()
+        self.decoder = Decoder()
+
+    def get_adain_output(self, content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:
+        content_feat = self.encoder(content)
+        style_feat = self.encoder(style)
+        adain_output = self.adain(content_feat, style_feat)
+        return adain_output
+
+    def forward(self, content: torch.Tensor, style: torch.Tensor) -> torch.Tensor:
+        adain_target = self.get_adain_output(content, style)
+        generated_img = self.decoder(adain_target)
+        return generated_img, adain_target
