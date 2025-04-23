@@ -44,3 +44,26 @@ class StyleTransferDataset(Dataset):
             style   = self.transform(style)
 
         return content, style
+
+def get_transform(
+    image_size=config.IMAGE_SIZE,
+    crop_size=config.CROP_SIZE,
+    train: bool = True
+):
+    transforms_list = [
+        v2.Resize(image_size),
+    ]
+    if train:
+        transforms_list += [
+            v2.RandomCrop(crop_size),
+            v2.RandomHorizontalFlip(),
+            v2.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
+            v2.TrivialAugmentWide(num_magnitude_bins=31),
+        ]
+    else:
+        transforms_list.append(v2.CenterCrop(crop_size))
+
+    transforms_list.append(v2.ToImage())
+    transforms_list.append(v2.ToDtype(torch.float32))
+
+    return v2.Compose(transforms_list)
