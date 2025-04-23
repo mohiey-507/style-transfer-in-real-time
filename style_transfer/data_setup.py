@@ -67,3 +67,46 @@ def get_transform(
     transforms_list.append(v2.ToDtype(torch.float32))
 
     return v2.Compose(transforms_list)
+
+def get_dataloaders(
+    train_content_dir:str = config.TRAIN_CONTENT_DIR,
+    train_style_dir:str = config.TRAIN_STYLE_DIR,
+    test_content_dir:str = config.TEST_CONTENT_DIR,
+    test_style_dir:str = config.TEST_STYLE_DIR,
+    batch_size:int = config.BATCH_SIZE,
+    num_workers:int = config.NUM_WORKERS,
+    pin_memory:bool = config.PIN_MEMORY,
+    drop_last:bool = config.DROP_LAST,
+) -> tuple[DataLoader, DataLoader]:
+    
+    train_set = StyleTransferDataset(
+        content_dir=train_content_dir,
+        style_dir=train_style_dir,
+        transform=get_transform(train=True),
+        verbose=True,
+    )
+    test_set = StyleTransferDataset(
+        content_dir=test_content_dir,
+        style_dir=test_style_dir,
+        transform=get_transform(train=False),
+        verbose=True,
+    )
+
+    train_loader = DataLoader(
+        train_set,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=drop_last,
+    )
+    test_loader = DataLoader(
+        test_set,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin_memory,
+        drop_last=drop_last,
+    )
+
+    return train_loader, test_loader
