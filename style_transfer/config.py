@@ -13,3 +13,8 @@ BATCH_SIZE = 8
 NUM_WORKERS = 4
 PIN_MEMORY = True
 DROP_LAST = True
+
+EPOCHS = 1
+LAMBDA_STYLE = 20.0
+LEARNING_RATE = 1e-4
+SAVE_PATH = '/kaggle/working/models'

@@ -64,7 +64,7 @@ def get_transform(
         transforms_list.append(v2.CenterCrop(crop_size))
 
     transforms_list.append(v2.ToImage())
-    transforms_list.append(v2.ToDtype(torch.float32))
+    transforms_list.append(v2.ToDtype(torch.float32, scale=True))
 
     return v2.Compose(transforms_list)
 
