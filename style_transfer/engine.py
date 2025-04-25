@@ -92,7 +92,7 @@ def train(
         optimizer: optim.Optimizer,
         train_loader: DataLoader,
         val_loader: DataLoader,
-        device: torch.device = config.DEVICE,
+        device: torch.device = 'cpu',
         epochs: int = config.EPOCHS,
         save_path: str = config.SAVE_PATH,
 ) -> dict:
