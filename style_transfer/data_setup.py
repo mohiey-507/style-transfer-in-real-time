@@ -11,25 +11,14 @@ class StyleTransferDataset(Dataset):
         self.transform = transform
 
         self.content_dir = Path(content_dir)
-        self.content_files = self._filter_valid_images(self.content_dir.glob("*.jpg"))
+        self.content_files = list(self.content_dir.glob("*.jpg"))
         if verbose:
-            print(f"Found {len(self.content_files)} valid content images in {content_dir}")
+            print(f"Found {len(self.content_files)} content images in {content_dir}")
 
         self.style_dir = Path(style_dir)
-        self.style_files = self._filter_valid_images(self.style_dir.glob("*.jpg"))
+        self.style_files = list(self.style_dir.glob("*.jpg"))
         if verbose:
-            print(f"Found {len(self.style_files)} valid style images in {style_dir}")
-
-    def _filter_valid_images(self, file_iter):
-        valid_files = []
-        for path in file_iter:
-            try:
-                with Image.open(path) as img:
-                    img.verify()
-                valid_files.append(path)
-            except Exception as e:
-                print(f"Skipping corrupted/invalid image {path}: {e}")
-        return valid_files
+            print(f"Found {len(self.style_files)} style images in {style_dir}")
 
     def __len__(self):
         return len(self.content_files)
