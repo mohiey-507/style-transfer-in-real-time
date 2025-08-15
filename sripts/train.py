@@ -1,9 +1,11 @@
-# %% [code]
-!git clone https://github.com/mohamed-mohiey/style-transfer-in-real-time.git
-%cd style-transfer-in-real-time
+# %% [markdown]
+#### *Kaggle Notebook:* [Style Transfer in Real Time](https://www.kaggle.com/code/mohamedmohiey/adain-style-transfer-vgg19)  
+#### *Dataset:* [Style Transfer Dataset](https://www.kaggle.com/datasets/mohamedmohiey/style-transfer)
 
 # %% [code]
-!pip install -r requirements.txt
+!git clone https://github.com/mohiey-507/style-transfer-in-real-time.git
+%cd style-transfer-in-real-time
+!pip install -r requirements.txt -q
 
 # %% [code]
 import sys
@@ -53,3 +55,12 @@ history = train(
     epochs=config["EPOCHS"],
     save_path=config["SAVE_PATH"]
 )
+# %% [code]
+import pandas as pd
+
+try:
+    df = pd.DataFrame(history)
+    df.to_csv("history.csv", index=False)
+    print("Saved history to history.csv")
+except Exception as e:
+    print(f"Error saving history: {e}")
