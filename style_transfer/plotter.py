@@ -1,10 +1,9 @@
-import config
 import torch
 import torch.nn as nn
 from PIL import Image
 import matplotlib.pyplot as plt
-from torchvision.transforms import v2
 from torchvision.transforms.functional import to_pil_image
+from .data_setup import get_transform
 
 class Plotter:
     """
@@ -13,39 +12,24 @@ class Plotter:
     def __init__(
         self,
         model: nn.Module,
+        config: dict,
         device: torch.device = 'cpu',
-        crop_size: int = config.CROP_SIZE
     ):
         self.model = model.to(device).eval()
         self.device = device
-        self.transform = self._get_inference_transform(crop_size)
-
-    @staticmethod
-    def _get_inference_transform(crop_size: int):
-        """
-        Inference transform: resize only to crop_size, convert to tensor and scale.
-        """
-        transforms_list = [
-            v2.Resize(crop_size),
-            v2.ToImage(),
-            v2.ToDtype(torch.float32, scale=True),
-        ]
-        return v2.Compose(transforms_list)
+        self.transform = get_transform(config["IMAGE_SIZE"], config["CROP_SIZE"], train=False)
 
     def one_content_many_style(
         self,
         content_img: Image.Image,
         style_imgs: list[Image.Image]
     ) -> list[torch.Tensor]:
-        """
-        Apply one content image to multiple style images and plot results.
-        """
         content_t = self.transform(content_img).unsqueeze(0).to(self.device)
         outputs = []
         with torch.inference_mode():
             for style_img in style_imgs:
                 style_t = self.transform(style_img).unsqueeze(0).to(self.device)
-                gen, _ = self.model(content_t, style_t)
+                gen = self.model(content_t, style_t)
                 outputs.append(gen.squeeze(0).cpu())
 
         n = len(style_imgs)
@@ -60,7 +44,7 @@ class Plotter:
         axes[1,0].set_title("Content")
         axes[1,0].axis('off')
         for i, gen in enumerate(outputs, start=1):
-            img = to_pil_image(gen.clamp(0,1))
+            img = to_pil_image(gen)
             axes[1,i].imshow(img)
             axes[1,i].set_title(f"Output {i}")
             axes[1,i].axis('off')
@@ -82,7 +66,7 @@ class Plotter:
         with torch.inference_mode():
             for content_img in content_imgs:
                 content_t = self.transform(content_img).unsqueeze(0).to(self.device)
-                gen, _ = self.model(content_t, style_t)
+                gen = self.model(content_t, style_t)
                 outputs.append(gen.squeeze(0).cpu())
 
         m = len(content_imgs)
@@ -97,7 +81,7 @@ class Plotter:
         axes[1,0].set_title("Style")
         axes[1,0].axis('off')
         for i, gen in enumerate(outputs, start=1):
-            img = to_pil_image(gen.clamp(0,1))
+            img = to_pil_image(gen)
             axes[1,i].imshow(img)
             axes[1,i].set_title(f"Output {i}")
             axes[1,i].axis('off')
@@ -120,7 +104,7 @@ class Plotter:
                 for style_img in style_imgs:
                     content_t = self.transform(content_img).unsqueeze(0).to(self.device)
                     style_t = self.transform(style_img).unsqueeze(0).to(self.device)
-                    gen, _ = self.model(content_t, style_t)
+                    gen = self.model(content_t, style_t)
                     results.append((content_img, style_img, gen.squeeze(0).cpu()))
 
         r, c = len(content_imgs), len(style_imgs)
@@ -137,7 +121,7 @@ class Plotter:
             axes[i,0].axis('off')
             for j, _ in enumerate(style_imgs, start=1):
                 _, _, gen = results[(i-1)*c + (j-1)]
-                img = to_pil_image(gen.clamp(0,1))
+                img = to_pil_image(gen)
                 axes[i,j].imshow(img)
                 axes[i,j].axis('off')
 
