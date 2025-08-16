@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 class VGGEncoder(nn.Module):
     def __init__(self, requires_grad: bool = False):
@@ -149,10 +149,23 @@ class StyleTransferModel(nn.Module):
     def forward(
         self,
         content_img: torch.Tensor,
-        style_img: torch.Tensor,
+        style_imgs: List[torch.Tensor],
+        style_weights: List[float] = None,
         alpha: float = 1.0
     ) -> torch.Tensor:
         f_c = self.encoder(content_img)
-        f_s = self.encoder(style_img)
+        
+        if len(style_imgs) == 1:
+            f_s = self.encoder(style_imgs[0])
+        else:
+            if style_weights is None:
+                style_weights = [1.0 / len(style_imgs)] * len(style_imgs)
+
+            style_batch = torch.cat(style_imgs, dim=0)  # (N, C, H, W)
+            f_s_batch = self.encoder(style_batch)
+
+            w = torch.tensor(style_weights, device=f_s_batch.device).view(-1, 1, 1, 1)
+            f_s = (f_s_batch * w).sum(dim=0, keepdim=True)  # (1, C, H, W)
+
         t = (1.0 - alpha) * f_c + alpha * self.adain(f_c, f_s)
         return self.decoder(t).clamp(0.0, 1.0)
