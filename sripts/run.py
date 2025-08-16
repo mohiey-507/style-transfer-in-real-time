@@ -39,6 +39,7 @@ def main():
     parser.add_argument('-alpha', type=float, default=1.0, help="Style interpolation factor (0.0 to 1.0).")
     parser.add_argument('-crop', type=int, default=256, help="Size to crop the images to.")
     parser.add_argument('-decoder_path', type=str, default=None, help="Path to the trained decoder model.")
+    parser.add_argument('-encoder_path', type=str, default=None, help="Path to the trained encoder model.")
     parser.add_argument('-output', type=str, default='output.jpg', help="Path to save the output image.")
     
     args = parser.parse_args()
@@ -54,7 +55,7 @@ def main():
     content_img = load_image(args.content, transform).to(device)
     style_imgs = [load_image(s, transform).to(device) for s in args.style]
     
-    model = StyleTransferModel(decoder_path=args.decoder_path).to(device)
+    model = StyleTransferModel(encoder_path=args.encoder_path, decoder_path=args.decoder_path).to(device)
     
     with torch.inference_mode():
         output = model(content_img, style_imgs, style_weights=args.interp_weight, alpha=args.alpha)

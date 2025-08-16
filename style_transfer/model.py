@@ -5,15 +5,11 @@ from pathlib import Path
 from typing import Union, List
 
 class VGGEncoder(nn.Module):
-    def __init__(self, requires_grad: bool = False):
+    def __init__(self, requires_grad: bool = False, pretrained: bool = True):
         super(VGGEncoder, self).__init__()
-        vgg19_features = models.vgg19(weights=models.VGG19_Weights.DEFAULT).features
-
-        # Extract up to relu4_1
-        self.vgg_layers = nn.Sequential(*[vgg19_features[i] for i in range(21)])
-
-        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1))
-        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
+        weights = models.VGG19_Weights.DEFAULT if pretrained else None
+        vgg = models.vgg19(weights=weights)
+        self.vgg_layers = nn.Sequential(*list(vgg.features)[:21])
 
         if not requires_grad:
             for param in self.parameters():
@@ -24,8 +20,8 @@ class VGGEncoder(nn.Module):
         return self.vgg_layers(x)
 
 class VGGFeatureExtractor(VGGEncoder):
-    def __init__(self, requires_grad: bool = False):
-        super().__init__(requires_grad=requires_grad)
+    def __init__(self, requires_grad: bool = False, pretrained: bool = True):
+        super().__init__(requires_grad=requires_grad, pretrained=pretrained)
         self.layer_indices = {
             'relu1_1': 1,
             'relu2_1': 6,
@@ -116,35 +112,44 @@ class AdaIN_Decoder(nn.Module):
         return generated_img, adain_target
 
 class StyleTransferModel(nn.Module):
-    def __init__(self, decoder_path: str = None):
+    def __init__(self, decoder_path: Union[str, Path] = None, encoder_path: Union[str, Path] = None):
         super().__init__()
-        self.encoder = VGGEncoder()
+        self.encoder = VGGEncoder(pretrained=False)
         self.adain = AdaIN()
         self.decoder = Decoder()
 
-        path = Path(decoder_path) if decoder_path else Path.cwd() / "models" / "decoder.pth"
-        try:
-            self.load_decoder_from_path(path)
-        except Exception as e1:
-            print(f"Warning: failed to load decoder from {path!s} ({e1}).")
-            fallback = Path.cwd() / "models" / "decoder.pth"
-            if fallback != path:
-                try:
-                    self.load_decoder_from_path(fallback)
-                except Exception as e2:
-                    print(f"Failed fallback {fallback!s} ({e2}).")
+        self.encoder = self._load_with_fallback("encoder", encoder_path, self.encoder, pretrained_fallback=lambda: VGGEncoder(pretrained=True))
+        self.decoder = self._load_with_fallback("decoder", decoder_path, self.decoder)
 
-    def load_decoder_from_path(self, path: Union[str, Path]):
+    def _load_from_path(self, path: Union[str, Path], model: nn.Module) -> nn.Module:
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(path)
-        obj = torch.load(path, map_location="cpu")
-        if isinstance(obj, dict):
-            self.decoder.load_state_dict(obj)
-        elif isinstance(obj, nn.Module):
-            self.decoder = obj
-        else:
-            raise TypeError(f"Unsupported decoder object type: {type(obj)}")
+        sd = torch.load(path, map_location="cpu")
+        if not isinstance(sd, dict):
+            raise TypeError(f"Unsupported object type: {type(sd)}")
+        model.load_state_dict(sd, strict=False)
+        return model
+
+    def _load_with_fallback(self, name: str, primary_path: Union[str, Path, None], model: nn.Module, pretrained_fallback=None) -> nn.Module:
+        if primary_path:
+            try:
+                return self._load_from_path(primary_path, model)
+            except Exception as e:
+                print(f"Warning: failed to load from {primary_path!s} ({e}).")
+        fallback = Path.cwd() / "models" / f"{name}.pth"
+        try:
+            if fallback.exists():
+                return self._load_from_path(fallback, model)
+        except Exception as e:
+            print(f"Warning: failed to load from fallback {fallback!s} ({e}).")
+        if pretrained_fallback is not None:
+            try:
+                print("Loading torch pretrained fallback (may take a while).")
+                return pretrained_fallback()
+            except Exception as e:
+                print(f"Warning: pretrained fallback failed ({e}).")
+        return model
 
     def forward(
         self,
