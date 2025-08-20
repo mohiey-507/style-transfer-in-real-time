@@ -11,6 +11,9 @@ class VGGEncoder(nn.Module):
         vgg = models.vgg19(weights=weights)
         self.vgg_layers = nn.Sequential(*list(vgg.features)[:21])
 
+        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1))
+        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
+        
         if not requires_grad:
             for param in self.parameters():
                 param.requires_grad = False
