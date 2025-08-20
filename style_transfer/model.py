@@ -11,6 +11,9 @@ class VGGEncoder(nn.Module):
         vgg = models.vgg19(weights=weights)
         self.vgg_layers = nn.Sequential(*list(vgg.features)[:21])
 
+        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1))
+        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
+        
         if not requires_grad:
             for param in self.parameters():
                 param.requires_grad = False
@@ -72,32 +75,44 @@ class Decoder(nn.Module):
 
 class AdaIN(nn.Module):
     """Adaptive Instance Normalization Layer"""
-    def __init__(self, eps: float = 1e-5):
+    def __init__(self, eps: float = 1e-5, preserve_input: bool = True):
         super(AdaIN, self).__init__()
         self.eps = eps
+        self.preserve_input = preserve_input
 
-    def calc_mean_std(self, feat: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        N, C = feat.size()[:2] # N = batch size, C = channels
-        feat_var = feat.view(N, C, -1).var(dim=2, unbiased=False) + self.eps
-        feat_std = feat_var.sqrt().view(N, C, 1, 1)
-        feat_mean = feat.view(N, C, -1).mean(dim=2).view(N, C, 1, 1)
-        return feat_mean, feat_std
+    @staticmethod
+    def _calc_mean_std(feat: torch.Tensor, eps: float) -> tuple[torch.Tensor, torch.Tensor]:
+        N, C, H, W = feat.shape
+        flat = feat.float().view(N, C, H * W)
+        mean = flat.mean(dim=2, keepdim=True)
+        mean_sq = (flat * flat).mean(dim=2, keepdim=True)
+        var = mean_sq - mean.pow(2)
+        std = (var + eps).sqrt()
+
+        mean = mean.view(N, C, 1, 1)
+        std  = std.view(N, C, 1, 1)
+        return mean, std
 
     def forward(self, content_feat: torch.Tensor, style_feat: torch.Tensor):
         """
-        Applies AdaIN.
         Args:
             content_feat: Features from the content image (e.g., VGG relu4_1).
             style_feat: Features from the style image (e.g., VGG relu4_1).
         Returns:
             Stylized features.
         """
-        mu_c, sigma_c = self.calc_mean_std(content_feat)
-        mu_s, sigma_s = self.calc_mean_std(style_feat)
+        mu_c_fp32, sigma_c_fp32 = self._calc_mean_std(content_feat, self.eps)
+        mu_s_fp32, sigma_s_fp32 = self._calc_mean_std(style_feat, self.eps)
 
-        normalized_feat = (content_feat - mu_c) / sigma_c # Normalize content features
-        stylized_feat = normalized_feat * sigma_s + mu_s # Apply style statistics
-        return stylized_feat
+        dtype = content_feat.dtype
+        mu_c = mu_c_fp32.to(dtype)
+        sigma_c = sigma_c_fp32.to(dtype)
+        mu_s = mu_s_fp32.to(dtype)
+        sigma_s = sigma_s_fp32.to(dtype)
+
+        x = content_feat.clone() if self.preserve_input else content_feat
+        x.sub_(mu_c).div_(sigma_c).mul_(sigma_s).add_(mu_s)
+        return x
 
 class AdaIN_Decoder(nn.Module):
     """Simple class cobining AdaIN and Decoder for training."""
