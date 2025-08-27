@@ -11,15 +11,11 @@ class VGGEncoder(nn.Module):
         vgg = models.vgg19(weights=weights)
         self.vgg_layers = nn.Sequential(*list(vgg.features)[:21])
 
-        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, -1, 1, 1))
-        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, -1, 1, 1))
-        
         if not requires_grad:
             for param in self.parameters():
                 param.requires_grad = False
 
     def forward(self, x) -> torch.Tensor:
-        x = (x - self.mean) / self.std
         return self.vgg_layers(x)
 
 class VGGFeatureExtractor(VGGEncoder):
@@ -34,7 +30,6 @@ class VGGFeatureExtractor(VGGEncoder):
         self.index_to_name = {v: k for k, v in self.layer_indices.items()}
 
     def forward(self, x):
-        x = (x - self.mean) / self.std
         features = {}
 
         for i, layer in enumerate(self.vgg_layers):
