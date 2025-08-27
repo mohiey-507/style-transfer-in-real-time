@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from style_transfer.model import StyleTransferModel
 
-def get_transform(crop_size: int = 256) -> v2.Compose:
+def get_transform(crop_size: int) -> v2.Compose:
     """Returns a transform to prepare images for the model."""
     return v2.Compose([
         v2.Resize((crop_size, crop_size)),
@@ -37,7 +37,7 @@ def main():
     parser.add_argument('-style', type=str, required=True, nargs='+', help="Path(s) to the style image(s).")
     parser.add_argument('-interp_weight', type=float, nargs='+', help="Interpolation weights for the style images.")
     parser.add_argument('-alpha', type=float, default=1.0, help="Style interpolation factor (0.0 to 1.0).")
-    parser.add_argument('-crop', type=int, default=256, help="Size to crop the images to.")
+    parser.add_argument('-crop', type=int, default=512, help="Size to crop the images to.")
     parser.add_argument('-decoder_path', type=str, default=None, help="Path to the trained decoder model.")
     parser.add_argument('-encoder_path', type=str, default=None, help="Path to the trained encoder model.")
     parser.add_argument('-output', type=str, default='output.jpg', help="Path to save the output image.")
@@ -48,7 +48,7 @@ def main():
         print("Error: The number of style images must match the number of interpolation weights.")
         sys.exit(1)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
     
     transform = get_transform(args.crop)
     
