@@ -5,18 +5,18 @@ This project implements real-time arbitrary style transfer using **Adaptive Inst
 ## Examples
 
 <p align='center'>
-  <img src='examples/arvil/avril.jpg' width="140px">
-  <img src='examples/arvil/impronte_d_artista.jpg' width="140px">
-  <img src='examples/arvil/avril_output.jpg' width="140px">
-  <img src='examples/woman_with_hat/cornell.jpg' width="140px">
-  <img src='examples/woman_with_hat/woman_with_hat.jpg' width="140px">
-  <img src='examples/woman_with_hat/woman_with_hat_output.jpg' width="140px">
+  <img src='examples/avril.jpg' width="140px">
+  <img src='examples/impronte_d_artista.jpg' width="140px">
+  <img src='examples/avril_output.jpg' width="140px">
+  <img src='examples/cornell.jpg' width="140px">
+  <img src='examples/woman_with_hat.jpg' width="140px">
+  <img src='examples/woman_with_hat_output.jpg' width="140px">
 </p>
 
 ## How It Works
 
 <p align='center'>
-  <img src='examples/Architecture.png' width="1080px">
+  <img src='examples/Architecture.png' width="1080px" height="150px">
 </p>
 
 1. **VGG-19 Encoder**: Extracts features from content and style images using a pre-trained VGG-19 model.
@@ -54,7 +54,7 @@ pip install -r requirements.txt
 Basic usage involves providing paths to content and style images:
 
 ```bash
-python3 scripts/run.py -content examples/woman_with_hat/cornell.jpg -style examples/woman_with_hat/woman_with_hat.jpg
+python3 scripts/run.py -content examples/cornell.jpg -style examples/woman_with_hat.jpg
 ```
 
 ### Additional Options
@@ -66,11 +66,11 @@ Run `scripts/run.py --help` to see all available options, such as output filenam
 Adjust the stylization degree with `-alpha` (default: 1, range: 0 to 1):
 
 ```bash
-python3 scripts/run.py -content examples/content_style_alpha/chicago.jpg -style examples/content_style_alpha/ashville.jpg -alpha 0.5
+python3 scripts/run.py -content examples/chicago.jpg -style examples/ashville.jpg -alpha 0.5
 ```
 
 <p align='center'>
-  <img src='examples/content_style_alpha/tradeoff.png' height="160px">
+  <img src='examples/tradeoff.png' height="160px">
 </p>
 
 #### Style Interpolation
@@ -78,11 +78,11 @@ python3 scripts/run.py -content examples/content_style_alpha/chicago.jpg -style 
 Interpolate between multiple styles using `-interp_weight`:
 
 ```bash
-python3 scripts/run.py -content examples/arvil/avril.jpg -style examples/style_interpolation/the_starry_night.png examples/style_interpolation/gustav_klimt_the_kiss.png -interp_weight 0.2 0.8
+python3 scripts/run.py -content examples/avril.jpg -style examples/the_starry_night.png examples/gustav_klimt_the_kiss.png -interp_weight 0.2 0.8
 ```
 
 <p align='center'>
-  <img src='examples/style_interpolation/interpolation.png' height="500px">
+  <img src='examples/interpolation.png' height="500px">
 </p>
 
 ## Contributing
