@@ -120,18 +120,18 @@ def main():
     model = StyleTransferModel().to(device)
 
     # Load for trade-off
-    default_content_trade = 'examples/content_style_alpha/chicago.jpg'
-    default_style_trade = 'examples/content_style_alpha/ashville.jpg'
+    default_content_trade = 'examples/chicago.jpg'
+    default_style_trade = 'examples/ashville.jpg'
     content_trade = load_with_fallback(args.content, transform, device, default_content_trade)
     style_trade = load_with_fallback(args.style_tradeoff, transform, device, default_style_trade)
 
     # Load for interpolation
-    default_content_interp = 'examples/style_interpolation/avril.jpg'
+    default_content_interp = 'examples/avril.jpg'
     default_styles = [
-        'examples/style_interpolation/the_starry_night.png',  # TL
-        'examples/style_interpolation/on_the_island.png',     # BL
-        'examples/style_interpolation/gustav_klimt_the_kiss.png',  # TR
-        'examples/style_interpolation/claude_monet_impression_sunrise.png'  # BR
+        'examples/the_starry_night.png',  # TL
+        'examples/on_the_island.png',     # BL
+        'examples/gustav_klimt_the_kiss.png',  # TR
+        'examples/claude_monet_impression_sunrise.png'  # BR
     ]
     content_interp = load_with_fallback(args.content, transform, device, default_content_interp)
     if args.styles:
